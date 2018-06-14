@@ -1,0 +1,59 @@
+{% extends "shop/base-4.1.1.html" %}
+{% load static %}
+
+{% block custom_css %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% if category %}{{ category.title }}{% else %}Products{% endif %}
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-sm navbar-dark bg-primary ">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#Navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Shop show</a>
+            <div class="collapse navbar-collapse" id="Navbar">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'shop:product_list' %}">
+                            <span class="fa fa-home fa-lg"></span>
+                            Home
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    Your cart is empty.
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 col-sm-4 " >
+                <img src="{{ product.image.url }}" width="100%">
+            </div>
+            <div class="col-12 col-sm-8">
+                <h1>{{ product.name }}</h1>
+                <h2>
+                    <a href="{{ product.category.get_absolute_url }}">
+                        {{ product.category }}
+                    </a>
+                </h2>
+                <p class="price">${{ product.price }}</p>
+
+                {{ product.description|linebreaks }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

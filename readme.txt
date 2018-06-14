@@ -271,3 +271,172 @@ class Product(models.Model):
 
     def get_absolute_url(self):
         return reverse('shop:product_detail', args=[self.id, self.slug])
+
+
+                第五章 创建显示产品的页面
+
+在shop应用下的templates/shop/product文件下依次创建list.html和detail.html。分别用于显示
+产品列表页面和商品详情页面。
+
+一、 商品列表页面，该页面使用了django模板继承的机制，也即使通过{% extends "shop/base-4.1.1.html" %}
+完成页面继承的。另外其中使用了bootstrap网格布局，在bootstrap4中开始默认使用flexbox功能，给页面
+布局带来了很多方便。list.html代码如下：
+
+{% extends "shop/base-4.1.1.html" %}
+{% load static %}
+
+{% block custom_css %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% if category %}{{ category.name }}{% else %}Products{% endif %}
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-sm navbar-dark bg-primary ">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#Navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Shop show</a>
+            <div class="collapse navbar-collapse" id="Navbar">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'shop:product_list' %}">
+                            <span class="fa fa-home fa-lg"></span>
+                            Home
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    Your cart is empty.
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row row-content ">
+            <div class="col-12 col-sm-2 ">
+                <h3>商品类别</h3>
+                <ul id="sidermenu" class="nav flex-column">
+                  <li {% if not category %}class="nav-item active"{% else %}class="nav-item"{% endif %}>
+                    <a class="nav-link " href="{% url 'shop:product_list' %}">所有</a>
+                  </li>
+                {% for c in categories %}
+                  <li {% if category.slug == c.slug %}class="nav-item active"{% else %}class="nav-item"{% endif %}>
+                    <a class="nav-link" href="{{ c.get_absolute_url }}">{{ c.name }}</a>
+                  </li>
+                {% endfor %}
+                </ul>
+            </div>
+            <div class="col-12 col-sm ">
+                <h2>{% if category %}{{ category.name }}{% else %}全部商品{% endif %}</h2>
+                <div class="row">
+                    {% for product in products %}
+                        <div class="col-12 col-sm-3">
+                            <div class="item" style="text-align:center;">
+                                <a href="{{ product.get_absolute_url }}">
+                                    <img src="{{ product.image.url }} " style='width:100%'>
+                                </a>
+                                <a href="{{ product.get_absolute_url }}">{{ product.name }}</a><br>
+                                ${{ product.price }}
+                            </div>
+
+                        </div>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+        # 分页功能区
+    </div>
+{% endblock %}
+
+二、商品详情页面，通用也继承自继承模板，而且采用了bootstrap的网格布局。代码如下：
+
+{% extends "shop/base-4.1.1.html" %}
+{% load static %}
+
+{% block custom_css %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% if category %}{{ category.title }}{% else %}Products{% endif %}
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-sm navbar-dark bg-primary ">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#Navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Shop show</a>
+            <div class="collapse navbar-collapse" id="Navbar">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'shop:product_list' %}">
+                            <span class="fa fa-home fa-lg"></span>
+                            Home
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    Your cart is empty.
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row">
+            <div class="col-12 col-sm-4 " >
+                <img src="{{ product.image.url }}" width="100%">
+            </div>
+            <div class="col-12 col-sm-8">
+                <h1>{{ product.name }}</h1>
+                <h2>
+                    <a href="{{ product.category.get_absolute_url }}">
+                        {{ product.category }}
+                    </a>
+                </h2>
+                <p class="price">${{ product.price }}</p>
+
+                {{ product.description|linebreaks }}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+关于django模板，如果我们把上面两个页面代码折叠后，看上去如下：
+{% extends "shop/base-4.1.1.html" %}
+{% load static %}
+
+{% block custom_css %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% if category %}{{ category.name }}{% else %}Products{% endif %}
+{% endblock %}
+
+{% block content %}
+    ...
+{% endblock %}
+
+也就是说上面list和detail页面都有上面的骨架，只是具体内容不同了，而相同的部分都被写入了base页面，这里
+就节省了很多重复的代码，这就是模板继承的好处！

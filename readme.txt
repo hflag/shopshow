@@ -440,3 +440,99 @@ class Product(models.Model):
 
 也就是说上面list和detail页面都有上面的骨架，只是具体内容不同了，而相同的部分都被写入了base页面，这里
 就节省了很多重复的代码，这就是模板继承的好处！
+
+                第六章 为产品列表页添加分页功能
+
+分页功能是很多页面所必须的一个组件，试想一下我们的产品有成百上千件，那么显示在一个页面是很难受的。django
+本身内置有分页的功能，在这里我们想结合bootstrap和django来显示分页功能，为此我们使用一个第三方分页应用：
+django-pure-pagination, 可以在github上搜素该应用，结合其文档进行安装和使用。
+
+一、安装和设置django-pure-pagination
+1. 安装根据其文档，在pycharm的Terminal中输入如下命令进行安装
+    pip install pip install django-pure-pagination
+
+2. 在项目settings.py中添加 pure_pagination,找到INSTALLED_APPS，添加如下代码：
+    INSTALLED_APPS = (
+    ...
+    'pure_pagination',
+)
+
+二、修改views.py添加分页功能
+其中修改代码如下：
+
+from pure_pagination import Paginator, EmptyPage, PageNotAnInteger
+
+
+class ProductsView(View):
+    def get(self, request, category_slug=None):
+        category = None
+        categories = Category.objects.all()
+        products = Product.objects.filter(available=True)
+
+        if category_slug:
+            category = get_object_or_404(Category, slug=category_slug)
+            products = products.filter(category=category)
+
+        # 商品分页功能
+        try:
+            page = request.GET.get('page', 1)
+        except PageNotAnInteger:
+            page = 1
+
+        # 每页设定为8件商品
+        p = Paginator(products, 8, request=request)
+
+        perpage_products = p.page(page)
+
+        return render(request, 'shop/product/list.html', {'category': category,
+                                                          'categories': categories,
+                                                          'products': perpage_products})
+
+
+三、修改list.html页面添加分页显示
+需要修改的代码如下：
+
+            <div class="col-12 col-sm ">
+                <h2>{% if category %}{{ category.name }}{% else %}全部商品{% endif %}</h2>
+                <div class="row">
+                    {% for product in products.object_list %}
+                        <div class="col-12 col-sm-3">
+                            <div class="item" style="text-align:center;">
+                                <a href="{{ product.get_absolute_url }}">
+                                    <img src="{{ product.image.url }} " style='width:100%'>
+                                </a>
+                                <a href="{{ product.get_absolute_url }}">{{ product.name }}</a><br>
+                                ${{ product.price }}
+                            </div>
+
+                        </div>
+                    {% endfor %}
+
+                </div>
+                <!-- 分页组件 -->
+                <nav class="row mt-3 justify-content-center" aria-label="Page navigation example">
+                  <ul class="pagination">
+                      {% if products.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?{{ products.previous_page_number.querystring }}">上一页</a></li>
+                      {% endif %}
+
+                      {% for page in products.pages %}
+                          {% if page %}
+                              {% ifequal page products.number %}
+                                  <li class="page-item active"><a class="page-link" href="?{{ page.querystring }}">{{ page }}</a></li>
+                              {% else %}
+                                  <li class="page-item"><a class="page-link" href="?{{ page.querystring }}">{{ page }}</a></li>
+                              {% endifequal %}
+                          {% else %}
+                              <li class="none"><a href="">...</a> </li>
+                          {% endif %}
+                      {% endfor %}
+
+                      {% if products.has_next %}
+                          <li class="page-item"><a class="page-link" href="?{{ page_obj.next_page_number.querystring }}">下一页</a></li>
+                      {% endif %}
+                  </ul>
+                </nav>
+            </div>
+
+注意：这里前端采用了bootstrap的分页组件nav

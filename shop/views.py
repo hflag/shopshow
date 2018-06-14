@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic.base import View
 
 from .models import Category, Product
+from pure_pagination import Paginator, EmptyPage, PageNotAnInteger
 
 
 class ProductsView(View):
@@ -14,9 +15,20 @@ class ProductsView(View):
             category = get_object_or_404(Category, slug=category_slug)
             products = products.filter(category=category)
 
+        # 商品分页功能
+        try:
+            page = request.GET.get('page', 1)
+        except PageNotAnInteger:
+            page = 1
+
+        # 每页设定为8件商品
+        p = Paginator(products, 8, request=request)
+
+        perpage_products = p.page(page)
+
         return render(request, 'shop/product/list.html', {'category': category,
                                                           'categories': categories,
-                                                          'products': products})
+                                                          'products': perpage_products})
 
 
 class ProductView(View):

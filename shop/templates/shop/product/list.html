@@ -56,7 +56,7 @@
             <div class="col-12 col-sm ">
                 <h2>{% if category %}{{ category.name }}{% else %}全部商品{% endif %}</h2>
                 <div class="row">
-                    {% for product in products %}
+                    {% for product in products.object_list %}
                         <div class="col-12 col-sm-3">
                             <div class="item" style="text-align:center;">
                                 <a href="{{ product.get_absolute_url }}">
@@ -70,8 +70,31 @@
                     {% endfor %}
 
                 </div>
+                <!-- 分页组件 -->
+                <nav class="row mt-3 justify-content-center" aria-label="Page navigation example">
+                  <ul class="pagination">
+                      {% if products.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?{{ products.previous_page_number.querystring }}">上一页</a></li>
+                      {% endif %}
+
+                      {% for page in products.pages %}
+                          {% if page %}
+                              {% ifequal page products.number %}
+                                  <li class="page-item active"><a class="page-link" href="?{{ page.querystring }}">{{ page }}</a></li>
+                              {% else %}
+                                  <li class="page-item"><a class="page-link" href="?{{ page.querystring }}">{{ page }}</a></li>
+                              {% endifequal %}
+                          {% else %}
+                              <li class="none"><a href="">...</a> </li>
+                          {% endif %}
+                      {% endfor %}
+
+                      {% if products.has_next %}
+                          <li class="page-item"><a class="page-link" href="?{{ page_obj.next_page_number.querystring }}">下一页</a></li>
+                      {% endif %}
+                  </ul>
+                </nav>
             </div>
         </div>
-{#        分页功能区#}
     </div>
 {% endblock %}

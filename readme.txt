@@ -78,3 +78,105 @@ base.html代码如下：
 </html>
 其中的html标签自不必说了，{%...%}就是django的模板语言，如果不懂参考django的文档。接下来，我们先来填充一些数据，
 以便我们的前台页面显示。
+
+
+                第三章 建立数据模型
+
+为了方便用户浏览商品，我们打算建立一个产品分类表-Category， 一个产品表-Product。
+在django里完全采用ORM，也就是对象关系映射机制，每个模型类对应数据库中的一张表，而类的属性对应表中的字段。
+一、建立数据模型
+代码如下：
+
+from django.db import models
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=200, db_index=True)
+    slug = models.SlugField(max_length=200, db_index=True, unique=True)
+
+    class Meta:
+        ordering = ('name', )
+        verbose_name = 'category'
+        verbose_name = 'categories'
+
+    def __str__(self):
+        return self.name
+
+
+class Product(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE,
+                                 related_name='products')
+    name = models.CharField(max_length=200, db_index=True)
+    slug = models.SlugField(max_length=200, db_index=True)
+    image = models.ImageField(upload_to='products/%Y/%m', blank=True)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock =models.PositiveIntegerField()
+    available = models.BooleanField(default=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('name',)
+        index_together = (('id', 'slug'),)
+
+    def __str__(self):
+        return self.name
+
+因为Product中使用了ImageField，所以必须安装第三方图像处理库pillow，在Terminal中使用如下命令安装：
+(webvenv) F:\www\shopshow>pip install pillow
+
+同时，为了是页面能够正常解析图片，需要修改settings.py，添加如下代码：
+# for media
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+然后在项目shopshow的urls中修改：
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
+
+二、将数据模型注册在admin中
+1. 找到shop应用中的admin.py文件，打开后写入下面的代码：
+
+from django.contrib import admin
+
+from .models import Category, Product
+
+
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug']
+    prepopulated_fields = {'slug': ('name',)}
+
+admin.site.register(Category, CategoryAdmin)
+
+
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'price', 'stock',
+                    'available', 'created', 'updated']
+    list_filter = ['available', 'created', 'updated']
+    list_editable = ['price', 'stock', 'available']
+    prepopulated_fields = {'slug': ('name',)}
+admin.site.register(Product, ProductAdmin)
+
+三、迁移数据库
+在django中，一旦修改了应用的models，那么必须使用如下2条命令完成数据库的迁移：
+1. python manage.py makemigrations shop
+2. python manage.py migrate shop
+为了能够访问admin页面，我们创建一个超级用户，通过如下命令
+ python manage.py createsuperuser
+根据提示输入用户名、邮箱和密码，完成创建。
+
+接下来就可以启动服务器，在浏览器地址栏输入localhost:8000/admin/进入admin页面，找到category和product，分别添加
+适当数据，以便我们后面页面开发使用。

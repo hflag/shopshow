@@ -40,3 +40,41 @@
         'django.contrib.staticfiles',
         'shop',
     ]
+
+
+            第二章 项目中集成bootstrap
+
+bootstrap作为前端开发框架，其牛气自不必说了。主要看如何往我们的项目shopshow里集成。bootstrap官网下载其最新版本
+将需要的css和js全部放入应用shop的static文件夹下。另外为了使用jQuery，这里也顺便集成了jQuery。
+
+悄悄告诉你，如果你想省事，可以直接拷贝、粘贴我这里的static目录，放入项目中，一下搞定：）
+
+关于bootstrap的使用要和django的模板使用紧密结合起来，强强联合，发挥二者的作用，为此我们在shop应用下添加‘templates/shop/product'
+文件夹，在shop文件夹中（不要搞错了）新建一个模板文件base.html.这个文件参考了bootstrap官网提供的模板，并且结合了
+django的模板语言，不得不说是强强联合了，哈哈哈！
+
+base.html代码如下：
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static "bootstrap-4.1.1/dist/css/bootstrap.min.css" %}">
+    <link rel="stylesheet" href="{% static "font-awesome-4.7.0/css/font-awesome.min.css" %}">
+    <link rel="stylesheet" href="{% static "bootstrap-social-gh-pages/bootstrap-social.css" %}">
+    <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    {% block custom_css %}{% endblock %}
+</head>
+<body >
+    {% block content %}
+    {% endblock %}
+<script src="{% static "js/jquery-3.3.1.min.js" %}"></script>
+<script src="{% static "js/popper.min.js" %}"></script>
+<script src="{% static "bootstrap-4.1.1/dist/js/bootstrap.min.js" %}"></script>
+</body>
+</html>
+其中的html标签自不必说了，{%...%}就是django的模板语言，如果不懂参考django的文档。接下来，我们先来填充一些数据，
+以便我们的前台页面显示。

@@ -1,0 +1,21 @@
+#sidermenu li a{
+    color:#5993bb;
+}
+#sidermenu li a:hover{
+    color:#77b6e2;
+}
+#sidermenu li.active{
+    background:#007bff;
+    border-radius:4px;
+}
+#sidermenu li.active a{
+    color:#fff;
+}
+p.price{
+    color:#333;
+    font-size:28px;
+    font-weight:bold;
+}
+.table td {
+    vertical-align: middle;
+}

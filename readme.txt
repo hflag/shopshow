@@ -180,3 +180,94 @@ admin.site.register(Product, ProductAdmin)
 
 接下来就可以启动服务器，在浏览器地址栏输入localhost:8000/admin/进入admin页面，找到category和product，分别添加
 适当数据，以便我们后面页面开发使用。
+
+
+                第四章 创建产品分类视图
+
+django项目下任何一个应用都会有一个views.py的文件，这里就是建立视图的地方。视图就是我们主要业务逻辑
+处理的位置。
+
+一、创建需要的视图
+django中视图可以使用类视图，也可以使用函数视图，某些情况下，二者可以相互替代。但是相对来说使用
+类视图更加灵活，功能也更强大，在目前shop视图中，我们采用类视图。
+
+1. 为了显示产品分类，我们需要创建一个所有产品的列表视图，当然该视图也可以是某个类别的所有产品，编辑
+views.py添加如下代码：
+
+from django.shortcuts import render, get_object_or_404
+from django.views.generic.base import View
+
+from .models import Category, Product
+
+
+class ProductsView(View):
+    def get(self, request, category_slug=None):
+        category = None
+        categories = Category.objects.all()
+        products = Product.objects.filter(available=True)
+
+        if category_slug:
+            category = get_object_or_404(Category, slug=category_slug)
+            products = products.filter(category=category)
+
+        return render(request, 'shop/product/list.html', {'category': category,
+                                                          'categories': categories,
+                                                          'products': products})
+
+2. 同时我们也需要一个提取和显示一件产品的视图，在views.py中继续添加下面的代码：
+
+class ProductView(View):
+    def get(self, request, id, slug):
+        product = get_object_or_404(Product, id=id, slug=slug)
+        return render(request, 'shop/product/detail.html', {'product': product})
+
+二、 为应用编写路由
+关于路由编写的策略，我们对每个应用编写一个自己的路由，然后聚合到项目路由，这样构成总路由包含分支路由的关系，以便
+维护。
+1. 在应用shop下创建一个urls.py的文件，写入下面的内容：
+
+from django.urls import path
+from . import views
+
+
+app_name = 'shop'
+urlpatterns = [
+    path('', views.ProductsView.as_view(), name='product_list'),
+    path('<str:category_slug>/', views.ProductsView.as_view(), name='product_list_by_category'),
+    path('<int:id>/<str:slug>/', views.ProductView.as_view(), name='product_detail'),
+]
+2. 把shop的路由添加到项目路由文件中，修改shopshow中的urls.py如下：
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('shop.urls', namespace='shop')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
+
+三、 进一步完善模型
+为了方便回去特定类别商品的url以及具体某件商品的url我们在模型中添加如下两个函数：
+
+from django.urls import reverse
+
+
+class Category(models.Model):
+    ...
+
+    def get_absolute_url(self):
+        return reverse('shop:product_list_by_category', args=[self.slug])
+
+
+class Product(models.Model):
+    ...
+
+    def get_absolute_url(self):
+        return reverse('shop:product_detail', args=[self.id, self.slug])

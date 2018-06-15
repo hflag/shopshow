@@ -536,3 +536,149 @@ class ProductsView(View):
             </div>
 
 注意：这里前端采用了bootstrap的分页组件nav
+
+
+                        第七章 购物车
+
+当我们有了商品展示页面后，就需要创建一个购物车允许用户选择他们希望购买的商品。购物车是一个用户暂存他们想要
+的商品的地方，因此用户访问网站期间，购物车必须保存在session中。
+
+我们将使用Django的session框架来保存购物车。购物车一直保存在session中，直到用户完成购买或支付。
+
+为了使用session，必须项目中的MIDDLEWARE_CLASSES设置为'django.contrib.sessions.middleware.SessionMiddleware'.
+这个中间层用来管理session，并且创建项目时，默认已经添加。
+
+一、session中存储购物车
+我们需要一个简单的数据结构便于序列化为JSON格式在session中存储购物车里的商品。购物车里的每件商品，购物车必须
+包含下列数据：
+    * 一件商品的id
+    * 这件商品的数量
+    * 商品的单价
+
+接下来就是必须能够控制创建的购物车与session关联起来。购物车必须像下面所述的工作：
+    * 一旦需要购物车，我们就检查用户的session key是否设置了。如果session中没有cart的设置，
+    我们就创建一个新的cart并且保存在session中。
+    * 对连续的请求，我们执行相同的检查，并且从cart session key中获取购物车中的商品。购物车里的
+    商品是从session中获取，而与之相关的商品对象还是要从数据库获取。
+
+具体来说，首先我们要编辑项目settings.py文件，添加如下代码：
+    CART_SESSION_ID = 'cart'
+
+这就是在用户session中存储购物车的关键字（key）。
+
+二、 创建第二个应用cart，用来管理购物车
+
+1. 打开pycharm的Terminal，输入下面命令创建应用cart：
+    (webvenv) F:\www\shopshow>python manage.py startapp cart
+
+2. 将该应用添加到项目shopshow，打开项目中的settings.py，将‘cart’添加到INSTALLED_APPS ：
+
+    INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'shop',
+    'pure_pagination',
+    'cart',
+    ]
+
+三、 创建购物车类Cart
+
+1. 在应用cart下，添加cart.py文件
+2. 输入如下代码，创建Cart类：
+
+from decimal import Decimal
+from django.conf import settings
+from shop.models import Product
+
+
+class Cart:
+    '''
+    购物车类
+    '''
+    def __init__(self, request):
+        '''
+        初始化购物车
+        :param request: 将购物车与session关联
+        '''
+
+        # 添加一个实例属性session，便于类里其他方法访问session
+        self.session = request.session
+
+        cart = self.session.get(settings.CART_SESSION_ID)
+        if not cart: # 代表session中么有cart这个key，也就是session没有存储购物车相关信息
+            cart = self.session[settings.CART_SESSION_ID] = {}
+
+        # 再添加一个实例属性
+        self.cart = cart
+
+    def add(self, product, quantity=1, update_quantity=False):
+        '''添加商品到购物车，或者更新商品数量
+        '''
+        product_id = str(product.id) # 因为JSON的key值只能为字符串
+        if product_id not in self.cart: # cart为一个字典类型，self.cart返回字典的key列表
+            self.cart[product_id] = {'quantity': 0,
+                                     'price': str(product.price)}
+
+        if update_quantity:
+            self.cart[product_id]['quantity'] = quantity
+        else:
+            self.cart[product_id]['quantity'] += quantity
+
+        self.save()
+
+    def save(self):
+        # 更新session中的cart
+        self.session[settings.CART_SESSION_ID] = self.cart
+        # 标记session为’modified',会自动存储
+        self.session.modified = True
+
+    def remove(self, product):
+        '''从购物车移去一件商品
+        '''
+        product_id = str(product.id)
+        if product_id in self.cart:
+            del self.cart[product_id]
+            self.save()
+
+    def __iter__(self):
+        '''迭代购物车中的每一个元素，
+        并且从数据库中获取相应的商品。
+        '''
+        # 获取购物车中所有元素的id
+        product_ids = self.cart.keys()
+
+        # 查询数据库，提取相应的商品对象
+        products = Product.objects.filter(id__in=product_ids)
+
+        # 把商品对象也加入购物车
+        for product in products:
+            self.cart[str(product.id)]['product'] = product
+
+        # 构造一个生成器
+        for item in self.cart.values():
+            item['price'] = Decimal(item['price'])
+            item['total_price'] = item['price'] * item['quantity']
+            yield item
+
+    def __len__(self):
+        '''
+        数出购物车中所有的元素
+        :return: 购物车商品总数
+        '''
+        return sum(item['quantity'] for item in self.cart.values())
+
+    def get_total_price(self):
+        return sum(Decimal(item['price']) * item['quantity'] for item in self.cart.values())
+
+    def clear(self):
+        # 删除session中的购物车
+        del self.session[settings.CART_SESSION_ID]
+        self.session.modified = True
+
+
+
+

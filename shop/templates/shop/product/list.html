@@ -21,7 +21,13 @@
                     <li class="nav-item active">
                         <a class="nav-link" href="{% url 'shop:product_list' %}">
                             <span class="fa fa-home fa-lg"></span>
-                            Home
+                            主页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'cart:cart_detail' %}">
+                            <span class="fa fa-shopping-cart fa-lg"></span>
+                            购物车
                         </a>
                     </li>
 
@@ -33,7 +39,17 @@
         <div class="container">
             <div class="row justify-content-end">
                 <div style="margin: 10px">
-                    Your cart is empty.
+                    {% with total_items=cart|length %}
+                        {% if cart|length > 0 %}
+                            Your cart:
+                            <a href="{% url 'cart:cart_detail' %}">
+                                {{ total_items }} item{{ total_items|pluralize }},
+                                ${{ cart.get_total_price }}
+                            </a>
+                        {% else %}
+                            Your cart is empty.
+                        {% endif %}
+                    {% endwith %}
                 </div>
             </div>
         </div>

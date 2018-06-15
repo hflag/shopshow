@@ -1,0 +1,113 @@
+{% extends 'shop/base-4.1.1.html' %}
+{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+{% block title %}
+    Your shopping cart
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-sm navbar-dark bg-primary ">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#Navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Shop show</a>
+            <div class="collapse navbar-collapse" id="Navbar">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'shop:product_list' %}">
+                            <span class="fa fa-home fa-lg"></span>
+                            主页
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'cart:cart_detail' %}">
+                            <span class="fa fa-shopping-cart fa-lg"></span>
+                            购物车
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    {% with total_items=cart|length %}
+                        {% if cart|length > 0 %}
+                            Your cart:
+                            <a href="{% url 'cart:cart_detail' %}">
+                                {{ total_items }} item{{ total_items|pluralize }},
+                                ${{ cart.get_total_price }}
+                            </a>
+                        {% else %}
+                            Your cart is empty.
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <h1>Your shopping cart</h1>
+        {% if cart|length > 0 %}
+        <div class="row">
+            <div class="col-12">
+                <table class="table table-borderless table-responsive-sm">
+                    <thead>
+                    <tr class="table-active">
+                        <th scope="col">Image</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Remove</th>
+                        <th scope="col">Unit price</th>
+                        <th scope="col">Price</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in cart %}
+                        {% with product=item.product %}
+                            <tr>
+                                <td style="vertical-align: middle">
+                                    <a href="{{ product.get_absolute_url }}">
+                                        <img src="{{ product.image.url }}" class="img-thumbnail" width="100" height="100">
+                                    </a>
+                                </td>
+                                <td style="vertical-align: middle">{{ product.name }}</td>
+                                <td style="vertical-align: middle">
+                                    <form action="{% url 'cart:cart_add' product.id %}" method="post">
+                                        {{ item.update_quantity_form.quantity }}
+                                        {{ item.update_quantity_form.update }}
+                                        <input type="submit" class="btn btn-primary btn-sm" value="Update">
+                                        {% csrf_token %}
+                                    </form>
+                                </td>
+                                <td style="vertical-align: middle">
+                                    <a href="{% url 'cart:cart_remove' product.id %}">Remove</a>
+                                </td>
+                                <td style="vertical-align: middle">${{ item.price }}</td>
+                                <td style="vertical-align: middle">${{ item.total_price }}</td>
+                            </tr>
+                        {% endwith %}
+                    {% endfor %}
+                        <tr class="table-active">
+                            <td><strong>Total</strong></td>
+                            <td colspan="4"></td>
+                            <td><strong>${{ cart.get_total_price }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="text-right">
+                    <a class="btn btn-light" href="{% url 'shop:product_list' %}">Continue shopping</a>
+                    <a href="#" class="btn btn-primary">Checkout</a>
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <h2>Blank! Blank! Go up!</h2>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -679,6 +679,118 @@ class Cart:
         del self.session[settings.CART_SESSION_ID]
         self.session.modified = True
 
+四、购物车显示页面
+    一旦用户将商品添加到购物车后，我们需要构建一个页面来显示。在应用cart下，添加购物车显示页面detail.html.其主要
+代码如下：
+   <div class="container">
+        <h1>Your shopping cart</h1>
+        {% if cart|length > 0 %}
+        <div class="row">
+            <div class="col-12">
+                <table class="table table-borderless table-responsive-sm">
+                    <thead>
+                    <tr class="table-active">
+                        <th scope="col">Image</th>
+                        <th scope="col">Product</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Remove</th>
+                        <th scope="col">Unit price</th>
+                        <th scope="col">Price</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in cart %}
+                        {% with product=item.product %}
+                            <tr>
+                                <td style="vertical-align: middle">
+                                    <a href="{{ product.get_absolute_url }}">
+                                        <img src="{{ product.image.url }}" class="img-thumbnail" width="100" height="100">
+                                    </a>
+                                </td>
+                                <td style="vertical-align: middle">{{ product.name }}</td>
+                                <td style="vertical-align: middle">
+                                    <form action="{% url 'cart:cart_add' product.id %}" method="post">
+                                        {{ item.update_quantity_form.quantity }}
+                                        {{ item.update_quantity_form.update }}
+                                        <input type="submit" class="btn btn-primary btn-sm" value="Update">
+                                        {% csrf_token %}
+                                    </form>
+                                </td>
+                                <td style="vertical-align: middle">
+                                    <a href="{% url 'cart:cart_remove' product.id %}">Remove</a>
+                                </td>
+                                <td style="vertical-align: middle">${{ item.price }}</td>
+                                <td style="vertical-align: middle">${{ item.total_price }}</td>
+                            </tr>
+                        {% endwith %}
+                    {% endfor %}
+                        <tr class="table-active">
+                            <td><strong>Total</strong></td>
+                            <td colspan="4"></td>
+                            <td><strong>${{ cart.get_total_price }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="text-right">
+                    <a class="btn btn-light" href="{% url 'shop:product_list' %}">Continue shopping</a>
+                    <a href="#" class="btn btn-primary">Checkout</a>
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <h2>Blank! Blank! Go up!</h2>
+        {% endif %}
+    </div>
+   这里主要使用了bootstrap的table组件。
+
+五、为购物车添加上下文处理器
+    一个上下文处理器就是一个Python函数，有一个request作为参数，返回一个字典。这样在模板中
+任何需要的时候，都可以取出使用。
+1. 在cart应用下创建一个文件context_processors.py。添加如下代码：
+from .cart import Cart
+
+def cart(request):
+    return {'cart': Cart(request)}
+
+2. 编辑项目settings.py ,将'cart.context_processors.cart'添加到context_processors选项中。
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'cart.context_processors.cart',
+            ],
+        },
+    },
+]
+3. 修改每个页面中jumbotron中cart部分：
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    {% with total_items=cart|length %}
+                        {% if cart|length > 0 %}
+                            Your cart:
+                            <a href="{% url 'cart:cart_detail' %}">
+                                {{ total_items }} item{{ total_items|pluralize }},
+                                ${{ cart.get_total_price }}
+                            </a>
+                        {% else %}
+                            Your cart is empty.
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+以便只要购物车添加商品后，每个页面的购物车中商品信息的一致性。
 
 
 

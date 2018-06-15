@@ -792,5 +792,95 @@ TEMPLATES = [
 
 以便只要购物车添加商品后，每个页面的购物车中商品信息的一致性。
 
+                    第八章 订单管理
+
+当购物车要支付的时候，就应该将订单保存在数据库里。订单包含顾客信息和他们购买的商品信息。
+为了方便订单管理，我们创建一个独立的应用orders。
+
+一、 创建订单应用
+1. 在pycharm的Terminal中输入下面的指令来创建新的应用：
+    (webvenv) F:\www\shopshow>python manage.py startapp orders
+
+2. 将应用添加到项目settings.py的INSTALLED_APPS
+    INSTALLED_APPS = [
+        'django.contrib.admin',
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'shop',
+        'pure_pagination',
+        'cart',
+        'orders',
+    ]
+
+二、创建订单应用的数据模型：
+
+我们需要一个模型来保存订单信息，另外一个模型用来保存购买的商品，包括价格和数量。
+1. 打开orders应用下的models.py, 添加如下模型的代码：
+
+from django.db import models
+from shop.models import Product
 
 
+class Order(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    email = models.EmailField()
+    address = models.CharField(max_length=250)
+    postal_code = models.CharField(max_length=20)
+    city = models.CharField(max_length=100)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    paid = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ('-created',)
+
+    def __str__(self):
+        return 'Order {}'.format(self.id)
+
+    def get_total_cost(self):
+        return sum(item.get_cost() for item in self.items.all())
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, related_name='order_items', on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return '{}'.format(self.id)
+
+    def get_cost(self):
+        return self.price * self.quantity
+
+
+2. 迁移生成数据库表单，在Terminal中输入如下命令：
+
+    (webvenv) F:\www\shopshow>python manage.py makemigrations orders
+    (webvenv) F:\www\shopshow>python manage.py migrate orders
+
+三、将订单模型注册到后天管理网站
+
+编辑orders应用下的admin.py文件，添加如下代码：
+
+from django.contrib import admin
+from .models import Order, OrderItem
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    raw_id_fields = ['product']
+
+
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ['id', 'first_name', 'last_name', 'email',
+                    'address', 'postal_code', 'city', 'paid',
+                    'created', 'updated']
+    list_filter = ['paid', 'created', 'updated']
+    inlines = [OrderItemInline]
+
+admin.site.register(Order, OrderAdmin)

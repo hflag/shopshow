@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'shop',
     'pure_pagination',
     'cart',
+    'orders',
 ]
 
 MIDDLEWARE = [

@@ -884,3 +884,95 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderItemInline]
 
 admin.site.register(Order, OrderAdmin)
+
+四、创建用户订单
+   当用户希望产生一个订单的时候，我们需要刚刚创建的订单模型用来保存购物车中的数据。创建一个新的订单大致需要如下
+步骤：
+    1. 为用户提供一个窗体用来填写相关数据。
+    2. 根据用户输入的数据创建一个订单实例， 然后为购物车中的每件产品创建一个相应的订单项目实例。
+    3. 清空购物车，并且跳转用户到一个成功页面。
+
+4.1 创建一个订单窗体，方便收集用户信息，在orders应用中，添加forms.py，输入如下代码：
+
+from django import forms
+from .models import Order
+
+
+class OrderCreateForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = ['first_name', 'last_name', 'email', 'address',
+                  'postal_code', 'city']
+
+4.2 创建一个处理订单的视图，在views.py中添加如下代码：
+
+from django.shortcuts import render
+from .models import OrderItem
+from .forms import OrderCreateForm
+from cart.cart import Cart
+
+
+def order_create(request):
+    cart = Cart(request)
+
+    if request.method == 'POST':
+        form = OrderCreateForm(request.POST)
+        if form.is_valid():
+            order = form.save()
+            for item in cart:
+                OrderItem.objects.create(order=order,
+                                         product=item['product'],
+                                         price=item['price'],
+                                         quantity=item['quantity'])
+            # 清空购物车
+            cart.clear()
+            return render(request, 'orders/order/created.html', {'order': order})
+    else:
+        form = OrderCreateForm()
+    return render(request, 'orders/order/create.html', {'cart': cart, 'form': form})
+
+4.3 创建订单页面
+在create.html页面中，因为使用django自己渲染form域，以便能够使用bootstrap中form的样式，需要自定义个
+模板过滤器。
+1. 在orders应用中，添加templatetags包，并在其中创建custom_css.py文件，输入如下代码：
+from django import template
+
+register = template.Library()
+
+
+@register.filter(name='addclass')
+def addclass(field, given_class):
+    existing_classes = field.field.widget.attrs.get('class', None)
+    if existing_classes:
+        if existing_classes.find(given_class) == -1:
+            # if the given class doesn't exist in the existing classes
+            classes = existing_classes + ' ' + given_class
+        else:
+            classes = existing_classes
+    else:
+        classes = given_class
+    return field.as_widget(attrs={"class": classes})
+
+2. 在create.html页面中使用时，首先要引入该模板过滤器
+{% extends 'shop/base-4.1.1.html' %}
+{% load custom_css %}
+{% load static %}
+...
+3. 为了在form中输入控件都呈现bootstrap定义的css
+...
+                <form action="." method="post">
+                    {% for field in form %}
+                        <div class="form-group fieldWrapper">
+                            {{ field.errors }}
+                            {{ field.label_tag }}
+                            {{ field|addclass:"form-control form-control-sm" }}
+                            {% if field.help_text %}
+                            <p class="help">{{ field.help_text|safe }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div><input type="submit" class="btn btn-primary btn-block" value="Place order"> </div>
+                    {% csrf_token %}
+                </form>
+...

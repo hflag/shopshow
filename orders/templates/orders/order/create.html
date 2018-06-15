@@ -1,0 +1,92 @@
+{% extends 'shop/base-4.1.1.html' %}
+{% load custom_css %}
+{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+{% block title %}
+    checkout
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-sm navbar-dark bg-primary ">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#Navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Shop show</a>
+            <div class="collapse navbar-collapse" id="Navbar">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'shop:product_list' %}">
+                            <span class="fa fa-home fa-lg"></span>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'cart:cart_detail' %}">
+                            <span class="fa fa-shopping-cart fa-lg"></span>
+                            购物车
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    {% with total_items=cart|length %}
+                        {% if cart|length > 0 %}
+                            Your cart:
+                            <a href="{% url 'cart:cart_detail' %}">
+                                {{ total_items }} item{{ total_items|pluralize }},
+                                ${{ cart.get_total_price }}
+                            </a>
+                        {% else %}
+                            Your cart is empty.
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row" style="margin-bottom: 10px;">
+            <div class="col-12 col-sm-5 ">
+                <h1>Checkout</h1>
+                <form action="." method="post">
+                    {% for field in form %}
+                        <div class="form-group fieldWrapper">
+                            {{ field.errors }}
+                            {{ field.label_tag }}
+                            {{ field|addclass:"form-control form-control-sm" }}
+                            {% if field.help_text %}
+                            <p class="help">{{ field.help_text|safe }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div><input type="submit" class="btn btn-primary btn-block" value="Place order"> </div>
+                    {% csrf_token %}
+                </form>
+            </div>
+
+            <div class="col-12 col-sm-3 offset-sm-4 ">
+
+                <div style="background-color: #e9ecef; margin-top: 15px;padding: 15px; border-bottom:4px solid #007bff;">
+                    <h3 style="color:#007bff">Your order</h3>
+                    <ul>
+                        {% for item in cart %}
+                            <li class="d-flex">
+                                {{ item.quantity }}x {{ item.product.name }}
+                                <span class="ml-auto">${{ item.total_price }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="text-right"><strong>Total: ${{ cart.get_total_price }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

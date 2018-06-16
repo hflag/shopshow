@@ -976,3 +976,102 @@ def addclass(field, given_class):
                     {% csrf_token %}
                 </form>
 ...
+
+
+4.4 安装celery实现异步任务
+
+在视图中执行的任何任务都会需要时间，从而影响对应用请求的响应。但是有些任务可能无法立即返回，
+这样就给用户很不好的使用体验，比如发送邮件就是这样的问题。解决这类问题的有效方法就是使用异步任务
+处理。
+Celery不仅能够创建异步任务，让他们尽快执行，也可以按计划在指定时间执行。我们的项目中，涉及在用户
+完成一个订单后，向其发送一封电子邮件。
+
+1. 安装Celery
+    pip install celery
+
+Celery需要一个消息broker，RabbitMQ就是一个能与Celery很好集成的broker
+
+2. 安装RabbitMQ
+windows下访问 https://www.rabbitmq.com/download.html下载安装程序，进行安装。
+安装完成后，启动RabbitMQ server
+
+3. 把Celery添加到shopshow。在shopshow下新建celery.py文件，添加如下代码：
+
+import os
+from celery import Celery
+from django.conf import settings
+
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'shopshow.settings')
+
+app = Celery('shopshow')
+
+app.config_from_object('django.conf:settings')
+app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+
+4. 为了确保django启动是装载celery模块，需要在shopshow内的__init__.py中添加如下代码
+
+    from .celery import app as celery_app
+
+完成了上述设置，就可以开始异步任务了。
+
+5. 在应用orders中添加异步任务。首先在orders应用中添加tasks.py模块，这里是celery
+寻找异步任务的地方。添加如下代码：
+
+from celery import task
+from django.core.mail import send_mail
+from .models import Order
+
+
+@task
+def order_created(order_id):
+    '''当一个订单成功创建后，
+    发送一个email通知'''
+    order = Order.objects.get(id=order_id)
+    subject = 'Order nr. {}'.format(order.id)
+    message = 'Dear {},\n\nYou have successfully placed an order. Your order id is {}.'.format(order.first_name,
+                                                                                               order.id)
+    mail_sent =send_mail(subject, message,
+                         'hflag@163.com',
+                         [order.email])
+    return mail_sent
+
+上述代码就是发送邮件，为了简化邮件发送，这里在项目settings.py中添加如下的邮件backend
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+6. 在相应的视图中使用异步任务，找到order_create视图，修改代码如下：
+
+from cart.cart import Cart
+from .tasks import order_created
+
+
+def order_create(request):
+    cart = Cart(request)
+
+    if request.method == 'POST':
+        form = OrderCreateForm(request.POST)
+        if form.is_valid():
+            order = form.save()
+            for item in cart:
+                OrderItem.objects.create(order=order,
+                                         product=item['product'],
+                                         price=item['price'],
+                                         quantity=item['quantity'])
+            # 清空购物车
+            cart.clear()
+
+            # 开始异步任务
+            order_created.delay(order.id)
+
+            return render(request, 'orders/order/created.html', {'order': order})
+    else:
+        form = OrderCreateForm()
+    return render(request, 'orders/order/create.html', {'cart': cart, 'form': form})
+
+7. 测试异步任务
+在cmd终端中进入项目所在环境（所使用的虚拟环境），输入如下命令：
+    celery -A shopshow worker --pool=solo -l info
+
+这样celery worker就已经运行并准备好处理任务。
+
+接下来启动项目服务器，向购物车添加一些商品，完成订单，在上面的cmd终端中查看异步任务的完成情况。

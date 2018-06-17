@@ -1,0 +1,63 @@
+{% extends 'shop/base-4.1.1.html' %}
+{% load custom_css %}
+{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+{% block title %}
+    Pay using PayPal
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar navbar-expand-sm navbar-dark bg-primary ">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#Navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/">Shop show</a>
+            <div class="collapse navbar-collapse" id="Navbar">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'shop:product_list' %}">
+                            <span class="fa fa-home fa-lg"></span>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item ">
+                        <a class="nav-link" href="{% url 'cart:cart_detail' %}">
+                            <span class="fa fa-shopping-cart fa-lg"></span>
+                            购物车
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <header class="jumbotron" style="padding: 0;">
+        <div class="container">
+            <div class="row justify-content-end">
+                <div style="margin: 10px">
+                    {% with total_items=cart|length %}
+                        {% if cart|length > 0 %}
+                            Your cart:
+                            <a href="{% url 'cart:cart_detail' %}">
+                                {{ total_items }} item{{ total_items|pluralize }},
+                                ${{ cart.get_total_price }}
+                            </a>
+                        {% else %}
+                            Your cart is empty.
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row ">
+            <div class="col-12 ">
+                <h1>Pay using PayPal</h1>
+                {{ form.render }}
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

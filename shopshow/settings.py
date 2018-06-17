@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'pure_pagination',
     'cart',
     'orders',
+    'paypal.standard.ipn',
+    'payment',
 ]
 
 MIDDLEWARE = [
@@ -133,3 +135,7 @@ CART_SESSION_ID = 'cart'
 
 # for email
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# django-paypal settings
+PAYPAL_RECEIVER_EMAIL = '532843488@qq.com'
+PAYPAL_TEST = True

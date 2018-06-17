@@ -1075,3 +1075,221 @@ def order_create(request):
 这样celery worker就已经运行并准备好处理任务。
 
 接下来启动项目服务器，向购物车添加一些商品，完成订单，在上面的cmd终端中查看异步任务的完成情况。
+
+                    第九章 管理支付和订单
+
+一、集成支付网关
+
+支付网关可以处理在线支付。使用支付网关，可以管理客户订单，安全、可靠的完成第三方支付。目前有很多
+支付网关可以选择，我们选择PayPal是因为它是目前最流行的支付网关。
+
+PayPal提供了几种方法在网站中集成。标准的集成包括一个‘Buy now’按钮，或许你在其他网站中已经见到过。
+我们计划集成PayPal支付，同样包括‘Buy now’在我们的网站。
+
+PayPal将处理支付，并且发送一个通知到我们的网站用来表明支付状态。
+
+1. 准备工作
+  进入PayPal官网，申请账户，注意一定要选择‘Bussiness Account'。
+
+2. 安装 django-paypal
+  在Terminal中，通过下面指令，安装PayPal：
+   pip install django-paypal
+
+3. 配置PayPal， 在shopshow的settings.py中，添加该应用
+    INSTALLED_APPS = [
+    # ...
+    'paypal.standard.ipn',
+    ]
+
+   同时，添加如下代码：
+   # django-paypal settings
+    PAYPAL_RECEIVER_EMAIL = '532843488@qq.com'
+    PAYPAL_TEST = True
+
+4. 迁移数据库。在Terminal中输入下列命令：
+    python manage.py migrate
+
+5. 添加PayPal的URLs。在项目shopshow在urls.py中添加如下代码：
+    path('payment/', include('payment.urls', namespace='payment')),
+
+二、创建一个新的应用’payment'，用来管理支付过程
+
+1. 创建应用payment
+    python manage.py startapp payment
+
+2. 编辑settings.py， 添加应用到配置文件
+    INSTALLED_APPS = [
+    # ...
+    'paypal.standard.ipn',
+    'payment',
+    ]
+
+3. 修改orders应用中的views.py，添加下面的代码：
+
+from django.shortcuts import render, redirect
+from django.urls import reverse
+
+def order_create(request):
+    cart = Cart(request)
+
+    if request.method == 'POST':
+        form = OrderCreateForm(request.POST)
+        if form.is_valid():
+            ...
+            # 清空购物车
+            cart.clear()
+
+            # 开始异步任务
+            order_created.delay(order.id)
+
+            # set the order in th session
+            request.session['order_id'] = order.id
+
+            # redirect to the payment
+            return redirect(reverse('payment:process'))
+    else:
+        form = OrderCreateForm()
+    return render(request, 'orders/order/create.html', {'cart': cart, 'form': form})
+
+4. 编辑payment应用中的views.py文件，添加如下代码：
+
+from django.shortcuts import render, get_object_or_404
+from decimal import Decimal
+from django.conf import settings
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+
+from paypal.standard.forms import PayPalPaymentsForm
+from orders.models import Order
+
+
+def payment_process(request):
+    order_id = request.session.get('order_id')
+    order = get_object_or_404(Order, id=order_id)
+    host = request.get_host()
+
+    paypal_dict = {
+        'business': settings.PAYPAL_RECEIVER_EMAIL,
+        'amount': '%.2f' % order.get_total_cost().quantize(Decimal('.01')),
+        'item_name': 'Order {}'.format(order.id),
+        'invoice': str(order.id),
+        'currency_code': 'USD',
+        'notify_url': 'http://{}{}'.format(host, reverse('paypal-ipn')),
+        'return_url': 'http://{}{}'.format(host, reverse('payment:done')),
+        'cancel_return': 'http://{}{}'.format(host,reverse('payment:canceled')),
+    }
+
+    form = PayPalPaymentsForm(initial=paypal_dict)
+    return render(request, 'payment/process.html',
+                  {'order': order, 'form': form})
+
+
+@csrf_exempt
+def payment_done(request):
+    return render(request, 'payment/done.html')
+
+
+@csrf_exempt
+def payment_canceled(request):
+    return render(request, 'payment/canceled.html')
+
+5. 编辑payment应用中的urls.py
+
+from django.urls import path
+from . import views
+
+
+app_name = 'payment'
+urlpatterns = [
+    path('process/', views.payment_process, name='process'),
+    path('done/', views.payment_done, name='done'),
+    path('canceled/', views.payment_canceled, name='canceled'),
+]
+同时不要忘记了将payment应用到urls.py添加到项目的urls.py里。
+
+6. 编写payment显示页面， 在payment应用下新建templates/payment.并且添加
+process.html, done.html, canceled.html
+
+它们的代码如下：
+
+（1）process.html
+
+{% extends 'shop/base-4.1.1.html' %}
+{% load custom_css %}
+{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+{% block title %}
+    Pay using PayPal
+{% endblock %}
+
+{% block content %}
+   ...
+    <div class="container">
+        <div class="row ">
+            <div class="col-12 ">
+                <h1>Pay using PayPal</h1>
+                {{ form.render }}
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+(2) done.html
+
+{% extends 'shop/base-4.1.1.html' %}
+{% load custom_css %}
+{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+{% block title %}
+    Pay using PayPal
+{% endblock %}
+
+{% block content %}
+   ...
+    <div class="container">
+        <div class="row ">
+            <div class="col-12 ">
+                <h1>Your payment was successful</h1>
+                <p>Your payment has been successfully received.</p>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+(3) canceled.html
+
+{% extends 'shop/base-4.1.1.html' %}
+{% load custom_css %}
+{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+{% block title %}
+    Pay using PayPal
+{% endblock %}
+
+{% block content %}
+   ...
+    <div class="container">
+        <div class="row ">
+            <div class="col-12 ">
+                <h1>Your payment has not been processed</h1>
+                <p>There was a problem processing your payment.</p>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+二、使用PayPal沙箱
+
+1. PayPal沙箱个人账户设置
+ 打开http://developer.paypal.com，使用PayPal商务账号登录。 点击‘Dashboard'菜单项，就可以看到
+ Sandbox下的Accounts。
+ 找到个人账户，修改密码后，用于后面的购买测试。
+
+2. 启动服务器，浏览商品，并添加进入购物车后，checkout，体会PayPal支付过程。
+

@@ -25,7 +25,7 @@ SECRET_KEY = 'q32ve$ed)s06oa_4eyp-fj!%5(+mr*7!t3#dy(@v-q%^91mu-z'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -137,5 +137,5 @@ CART_SESSION_ID = 'cart'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # django-paypal settings
-PAYPAL_RECEIVER_EMAIL = '532843488@qq.com'
+PAYPAL_RECEIVER_EMAIL = '532843488-facilitator@qq.com'
 PAYPAL_TEST = True

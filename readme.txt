@@ -1293,3 +1293,7 @@ process.html, done.html, canceled.html
 
 2. 启动服务器，浏览商品，并添加进入购物车后，checkout，体会PayPal支付过程。
 
+3. 测试支付的时候，是一定要有两个PayPal账号才可以的！！
+
+
+

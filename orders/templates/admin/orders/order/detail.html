@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+
+{% load static %}
+
+{% block extrastyle %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url "admin:index" %}">Home</a> &rsaquo;
+        <a href="{% url "admin:orders_order_changelist" %}">Orders</a>
+        &rsaquo;
+        <a href="{% url "admin:orders_order_change" order.id %}">Order {{ order.id }}</a>
+        &rsaquo; Detail
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h1>Order {{ order.id }}</h1>
+
+{% endblock %}

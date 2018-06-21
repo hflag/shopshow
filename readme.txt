@@ -1284,7 +1284,7 @@ process.html, done.html, canceled.html
     </div>
 {% endblock %}
 
-二、使用PayPal沙箱
+三、使用PayPal沙箱
 
 1. PayPal沙箱个人账户设置
  打开http://developer.paypal.com，使用PayPal商务账号登录。 点击‘Dashboard'菜单项，就可以看到
@@ -1294,6 +1294,8 @@ process.html, done.html, canceled.html
 2. 启动服务器，浏览商品，并添加进入购物车后，checkout，体会PayPal支付过程。
 
 3. 测试支付的时候，是一定要有两个PayPal账号才可以的！！
+
+##
 
 
 
